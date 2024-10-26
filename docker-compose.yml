@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  wordpress:
+    image: docker.io/library/wordpress:php8.3-fpm-alpine
+    volumes:
+      - ./wp-data:/var/www/html
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress_password
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_PORT: 9000
+    depends_on:
+      - db
+    networks:
+      - wp_network
+  db:
+    image: ghcr.io/yobasystems/alpine-mariadb:latest
+    volumes:
+      - db_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress_password
+    networks:
+      - wp_network
+
+  phpmyadmin:
+    image: docker.io/library/phpmyadmin:fpm-alpine
+    environment:
+      PMA_HOST: db
+      PMA_USER: wordpress
+      PMA_PASSWORD: wordpress_password
+    ports:
+      - "8090:80"
+    depends_on:
+      - db
+    networks:
+      - wp_network
+  
+  webserver:
+    depends_on:
+      - wordpress
+    image: docker.io/library/nginx:alpine
+    container_name: webserver
+    restart: unless-stopped
+    ports:
+      - "8080:91"
+    volumes:
+      - ./wp-data:/var/www/html/
+      - ./nginx-conf:/etc/nginx/conf.d
+    networks:
+      - wp_network
+
+networks:
+  wp_network:
+
+volumes:
+  # wordpress_data: ./wp-content
+  db_data:
